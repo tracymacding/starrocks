@@ -312,6 +312,10 @@ public:
         return Status::NotSupported("HdfsFileSystem::link_file");
     }
 
+    std::string full_path(std::string_view path);
+
+    std::string join_path(std::string_view part1, std::string_view part2);
+
 private:
     Status _path_exists(hdfsFS fs, const std::string& path);
 
@@ -521,6 +525,20 @@ Status HdfsFileSystem::rename_file(const std::string& src, const std::string& ta
         return Status::InvalidArgument("rename file from {} to {} error"_format(src, target));
     }
     return Status::OK();
+}
+
+std::string HdfsFileSystem::full_path(std::string_view path) {
+    return std::string(path);
+}
+
+std::string HdfsFileSystem::join_path(std::string_view part1, std::string_view part2) {
+    assert(!part1.empty());
+    assert(!part2.empty());
+    assert(part2.back() != '/');
+    if (part2.back() != '/') {
+        return fmt::format("{}/{}", part1, part2);
+    }
+    return fmt::format("{}{}", part1, part2);
 }
 
 std::unique_ptr<FileSystem> new_fs_hdfs(const FSOptions& options) {

@@ -21,8 +21,9 @@
 #include "fs/fs_util.h"
 #include "fs/hdfs/fs_hdfs.h"
 #include "runtime/file_result_writer.h"
+
 #ifdef USE_STAROS
-#include "fs/fs_starlet.h"
+#include "fs/fs_starlet_mgr.h"
 #endif
 
 namespace starrocks {
@@ -31,7 +32,7 @@ static thread_local std::shared_ptr<FileSystem> tls_fs_posix;
 static thread_local std::shared_ptr<FileSystem> tls_fs_s3;
 static thread_local std::shared_ptr<FileSystem> tls_fs_hdfs;
 #ifdef USE_STAROS
-static thread_local std::shared_ptr<FileSystem> tls_fs_starlet;
+static thread_local std::shared_ptr<StarletFsMgr> tls_fs_starlet_mgr;
 #endif
 
 inline std::shared_ptr<FileSystem> get_tls_fs_hdfs() {
@@ -56,11 +57,11 @@ inline std::shared_ptr<FileSystem> get_tls_fs_s3() {
 }
 
 #ifdef USE_STAROS
-inline std::shared_ptr<FileSystem> get_tls_fs_starlet() {
-    if (tls_fs_starlet == nullptr) {
-        tls_fs_starlet.reset(new_fs_starlet().release());
+inline std::shared_ptr<StarletFsMgr> get_tls_fs_starlet() {
+    if (tls_fs_starlet_mgr == nullptr) {
+        tls_fs_starlet_mgr.reset(std::make_unique<StarletFsMgr>().release());
     }
-    return tls_fs_starlet;
+    return tls_fs_starlet_mgr;
 }
 #endif
 
@@ -77,8 +78,13 @@ StatusOr<std::unique_ptr<FileSystem>> FileSystem::CreateUniqueFromString(std::st
         return new_fs_hdfs(options);
     }
 #ifdef USE_STAROS
-    if (is_starlet_uri(uri)) {
-        return new_fs_starlet();
+    if (StarletFsMgr::is_starlet_uri(uri)) {
+        auto starlet_fs_mgr = get_tls_fs_starlet();
+        auto starlet_fs_or = starlet_fs_mgr->get_starlet_fs(uri);
+        if (!starlet_fs_or.ok()) {
+            return starlet_fs_or.status();
+        }
+        return std::move(*starlet_fs_or);
     }
 #endif
     // Since almost all famous storage are compatible with Hadoop FileSystem, it's always a choice to fallback using
@@ -94,8 +100,13 @@ StatusOr<std::shared_ptr<FileSystem>> FileSystem::CreateSharedFromString(std::st
         return get_tls_fs_s3();
     }
 #ifdef USE_STAROS
-    if (is_starlet_uri(uri)) {
-        return get_tls_fs_starlet();
+    if (StarletFsMgr::is_starlet_uri(uri)) {
+        auto starlet_fs_mgr = get_tls_fs_starlet();
+        auto starlet_fs_or = starlet_fs_mgr->get_starlet_fs(uri);
+        if (!starlet_fs_or.ok()) {
+            return starlet_fs_or.status();
+        }
+        return std::move(*starlet_fs_or);
     }
 #endif
     // Since almost all famous storage are compatible with Hadoop FileSystem, it's always a choice to fallback using

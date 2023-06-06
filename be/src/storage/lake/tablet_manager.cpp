@@ -342,7 +342,8 @@ Status TabletManager::put_tablet_metadata(const TabletMetadata& metadata) {
 }
 
 StatusOr<TabletMetadataPtr> TabletManager::load_tablet_metadata(const string& metadata_location, bool fill_cache) {
-    MetaFileReader reader(metadata_location, fill_cache);
+    ASSIGN_OR_RETURN(auto fs, FileSystem::CreateSharedFromString(metadata_location));
+    MetaFileReader reader(fs, metadata_location, fill_cache);
     RETURN_IF_ERROR(reader.load());
     return reader.get_meta();
 }
@@ -398,6 +399,7 @@ StatusOr<TabletMetadataIter> TabletManager::list_tablet_metadata(int64_t tablet_
 StatusOr<TxnLogPtr> TabletManager::load_txn_log(const std::string& txn_log_path, bool fill_cache) {
     std::string read_buf;
     RandomAccessFileOptions opts{.skip_fill_local_cache = !fill_cache};
+    // TODO(jeff.ding)
     ASSIGN_OR_RETURN(auto rf, fs::new_random_access_file(opts, txn_log_path));
     ASSIGN_OR_RETURN(auto size, rf->get_size());
     if (UNLIKELY(size > std::numeric_limits<int>::max())) {
@@ -898,7 +900,7 @@ static void metadata_gc(TabletManager* tablet_mgr, const std::set<std::string>& 
         }
     }
     while (num_running.load() > 0) {
-        LOG_EVERY_N(INFO, 10) << "Waiting for GC tasks to finish...";
+        LOG_EVERY_N(INFO, 10) << "Waiting for meta file GC tasks to finish...";
         bthread_usleep(/*1s=*/1000 * 1000);
     }
 }
@@ -926,7 +928,7 @@ static void data_gc(TabletManager* tablet_mgr, const std::set<std::string>& root
         }
     }
     while (num_running.load() > 0) {
-        LOG_EVERY_N(INFO, 10) << "Waiting for GC tasks to finish...";
+        LOG_EVERY_N(INFO, 10) << "Waiting for data file GC tasks to finish...";
         bthread_usleep(/*1s=*/1000 * 1000);
     }
 }

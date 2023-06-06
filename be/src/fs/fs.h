@@ -269,6 +269,15 @@ public:
     // Given the path to a remote file, delete the file's cache on the local file system, if any.
     // On success, Status::OK is returned. If there is no cache, Status::NotFound is returned.
     virtual Status drop_local_cache(const std::string& path) { return Status::NotFound(path); }
+
+    // Return root dir for filesystem
+    virtual std::string root_dir() { return ""; }
+
+    // return full path for starlet file system
+    virtual std::string full_path(std::string_view path) = 0;
+
+    // join two part to one path
+    virtual std::string join_path(std::string_view part1, std::string_view part2) = 0;
 };
 
 // Creation-time options for WritableFile

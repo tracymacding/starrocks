@@ -28,6 +28,7 @@ set(EXEC_FILES
     hdfs/hdfs_fs_cache.cpp
     fs_util.cpp
     fs_starlet.cpp
+    fs_starlet_mgr.cpp
     )
 
 add_library(FileSystem STATIC

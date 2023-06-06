@@ -592,6 +592,20 @@ public:
             return Status::IOError(fmt::format("fail to get space info of path {}: {}", path, e.what()));
         }
     }
+
+    std::string full_path(std::string_view path) {
+        return std::string(path);
+    }
+
+    std::string join_path(std::string_view part1, std::string_view part2) {
+        assert(!part1.empty());
+        assert(!part2.empty());
+        assert(part2.back() != '/');
+        if (part2.back() != '/') {
+            return fmt::format("{}/{}", part1, part2);
+        }
+        return fmt::format("{}{}", part1, part2);
+    }
 };
 
 // Default Posix FileSystem

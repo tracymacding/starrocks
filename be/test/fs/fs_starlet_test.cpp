@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "fs/fs_starlet.h"
+#include "fs/fs_starlet_mgr.h"
 
 #include <fmt/format.h>
 #include <fslib/configuration.h>
@@ -83,7 +83,7 @@ public:
         }
     }
 
-    std::string StarletPath(std::string_view path) { return build_starlet_uri(10086, path); }
+    std::string StarletPath(std::string_view path) { return StarletFsMgr::build_starlet_uri(10086, path); }
 
     void CheckIsDirectory(FileSystem* fs, const std::string& dir_name, bool expected_success,
                           bool expected_is_dir = true) {
@@ -96,29 +96,29 @@ public:
 };
 
 TEST_P(StarletFileSystemTest, test_build_and_parse_uri) {
-    ASSERT_EQ("staros://10", build_starlet_uri(10, ""));
-    ASSERT_EQ("staros://10", build_starlet_uri(10, "/"));
-    ASSERT_EQ("staros://10", build_starlet_uri(10, "///"));
-    ASSERT_EQ("staros://10/abc", build_starlet_uri(10, "abc"));
-    ASSERT_EQ("staros://10/abc", build_starlet_uri(10, "/abc"));
-    ASSERT_EQ("staros://10/abc", build_starlet_uri(10, "////abc"));
-    ASSERT_EQ("staros://10/abc/xyz", build_starlet_uri(10, "////abc/xyz"));
+    ASSERT_EQ("staros://10", StarletFsMgr::build_starlet_uri(10, ""));
+    ASSERT_EQ("staros://10", StarletFsMgr::build_starlet_uri(10, "/"));
+    ASSERT_EQ("staros://10", StarletFsMgr::build_starlet_uri(10, "///"));
+    ASSERT_EQ("staros://10/abc", StarletFsMgr::build_starlet_uri(10, "abc"));
+    ASSERT_EQ("staros://10/abc", StarletFsMgr::build_starlet_uri(10, "/abc"));
+    ASSERT_EQ("staros://10/abc", StarletFsMgr::build_starlet_uri(10, "////abc"));
+    ASSERT_EQ("staros://10/abc/xyz", StarletFsMgr::build_starlet_uri(10, "////abc/xyz"));
 
-    ASSERT_FALSE(parse_starlet_uri("posix://x/y").ok());
-    ASSERT_FALSE(parse_starlet_uri("staros:/10").ok());
-    ASSERT_FALSE(parse_starlet_uri("staros://x/y").ok());
-    ASSERT_FALSE(parse_starlet_uri("Staros://x/y").ok());
-    ASSERT_FALSE(parse_starlet_uri("SATROS://x/y").ok());
+    ASSERT_FALSE(StarletFsMgr::parse_starlet_uri("posix://x/y").ok());
+    ASSERT_FALSE(StarletFsMgr::parse_starlet_uri("staros:/10").ok());
+    ASSERT_FALSE(StarletFsMgr::parse_starlet_uri("staros://x/y").ok());
+    ASSERT_FALSE(StarletFsMgr::parse_starlet_uri("Staros://x/y").ok());
+    ASSERT_FALSE(StarletFsMgr::parse_starlet_uri("SATROS://x/y").ok());
 
-    ASSIGN_OR_ABORT(auto path_and_id, parse_starlet_uri("staros://10/abc"));
+    ASSIGN_OR_ABORT(auto path_and_id, StarletFsMgr::parse_starlet_uri("staros://10/abc"));
     ASSERT_EQ("abc", path_and_id.first);
     ASSERT_EQ(10, path_and_id.second);
 
-    ASSIGN_OR_ABORT(path_and_id, parse_starlet_uri("staros://10"));
+    ASSIGN_OR_ABORT(path_and_id, StarletFsMgr::parse_starlet_uri("staros://10"));
     ASSERT_EQ("", path_and_id.first);
     ASSERT_EQ(10, path_and_id.second);
 
-    ASSIGN_OR_ABORT(path_and_id, parse_starlet_uri("staros://10/usr/bin"));
+    ASSIGN_OR_ABORT(path_and_id, StarletFsMgr::parse_starlet_uri("staros://10/usr/bin"));
     ASSERT_EQ("usr/bin", path_and_id.first);
     ASSERT_EQ(10, path_and_id.second);
 }

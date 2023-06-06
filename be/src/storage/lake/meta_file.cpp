@@ -38,7 +38,11 @@ static std::string delvec_cache_key(int64_t tablet_id, const DelvecPagePB& page)
 }
 
 MetaFileBuilder::MetaFileBuilder(Tablet tablet, std::shared_ptr<TabletMetadata> metadata)
-        : _tablet(tablet), _tablet_meta(std::move(metadata)), _update_mgr(_tablet.update_mgr()) {}
+        : _tablet(tablet), _tablet_meta(std::move(metadata)), _update_mgr(_tablet.update_mgr()) {
+    auto fs_or = FileSystem::CreateSharedFromString(tablet.root_location());
+    assert(fs_or.ok());
+    _fs = *fs_or;
+}
 
 void MetaFileBuilder::append_delvec(DelVectorPtr delvec, uint32_t segment_id) {
     if (delvec->cardinality() > 0) {
@@ -148,7 +152,7 @@ Status MetaFileBuilder::_finalize_delvec(int64_t version, int64_t txn_id) {
         // keep delete vector file name in tablet meta
         (*_tablet_meta->mutable_delvec_meta()->mutable_version_to_delvec())[version] = delvec_file_name;
         auto options = WritableFileOptions{.sync_on_close = true, .mode = FileSystem::CREATE_OR_OPEN_WITH_TRUNCATE};
-        auto writer_file = fs::new_writable_file(options, delvec_file_path);
+        auto writer_file = _fs->new_writable_file(options, delvec_file_path);
         if (!writer_file.ok()) {
             return writer_file.status();
         }
@@ -218,9 +222,10 @@ void MetaFileBuilder::handle_failure() {
     }
 }
 
-MetaFileReader::MetaFileReader(const std::string& filepath, bool fill_cache) {
+MetaFileReader::MetaFileReader(const std::shared_ptr<FileSystem> fs, const std::string& filepath, bool fill_cache) {
+    _fs = fs;
     RandomAccessFileOptions opts{.skip_fill_local_cache = !fill_cache};
-    auto rf = fs::new_random_access_file(opts, filepath);
+    auto rf = _fs->new_random_access_file(opts, filepath);
     if (rf.ok()) {
         _access_file = std::move(*rf);
     } else {
@@ -238,7 +243,7 @@ Status MetaFileReader::load() {
 
     auto file_size_st = _access_file->get_size();
     if (!file_size_st.ok()) {
-        return Status::IOError(fmt::format("meta file {} get size failed", _access_file->filename()));
+        return Status::IOError(fmt::format("meta file {} get size failed {}", _access_file->filename(), file_size_st.status().message()));
     }
     const uint64_t file_size = *file_size_st;
     if (file_size <= 4) {
@@ -289,7 +294,7 @@ Status MetaFileReader::get_del_vec(TabletManager* tablet_mgr, uint32_t segment_i
         }
         const auto& delvec_name = iter2->second;
         RandomAccessFileOptions opts{.skip_fill_local_cache = true};
-        auto rf = fs::new_random_access_file(opts, tablet_mgr->delvec_location(_tablet_meta->id(), delvec_name));
+        auto rf = _fs->new_random_access_file(opts, tablet_mgr->delvec_location(_tablet_meta->id(), delvec_name));
         if (!rf.ok()) {
             return rf.status();
         }

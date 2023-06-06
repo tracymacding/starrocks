@@ -55,6 +55,7 @@ private:
     Status _finalize_delvec(int64_t version, int64_t txn_id);
 
 private:
+    std::shared_ptr<FileSystem> _fs;
     Tablet _tablet;
     std::shared_ptr<TabletMetadata> _tablet_meta;
     UpdateManager* _update_mgr;
@@ -68,13 +69,14 @@ private:
 
 class MetaFileReader {
 public:
-    explicit MetaFileReader(const std::string& filepath, bool fill_cache);
+    explicit MetaFileReader(const std::shared_ptr<FileSystem> _fs, const std::string& filepath, bool fill_cache);
     ~MetaFileReader() {}
     Status load();
     Status get_del_vec(TabletManager* tablet_mgr, uint32_t segment_id, DelVector* delvec);
     StatusOr<TabletMetadataPtr> get_meta();
 
 private:
+    std::shared_ptr<FileSystem> _fs;
     std::unique_ptr<RandomAccessFile> _access_file;
     std::shared_ptr<TabletMetadata> _tablet_meta;
     Status _err_status;

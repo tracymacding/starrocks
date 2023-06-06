@@ -84,6 +84,10 @@ public:
 
     Status link_file(const std::string& old_path, const std::string& new_path) override;
 
+    std::string full_path(std::string_view path) override;
+
+    std::string join_path(std::string_view part1, std::string_view part2) override;
+
 #ifdef BE_TEST
     static void TEST_set_broker_client(TFileBrokerServiceClient* client);
 #endif

@@ -380,6 +380,10 @@ public:
 
     StatusOr<SpaceInfo> space(const std::string& path) override;
 
+    std::string full_path(std::string_view path) override;
+
+    std::string join_path(std::string_view part1, std::string_view part2);
+
 private:
     FSOptions _options;
 };
@@ -796,6 +800,20 @@ Status S3FileSystem::delete_dir_recursive(const std::string& dirname) {
         }
     } while (result.GetIsTruncated());
     return directory_exist ? Status::OK() : Status::NotFound(dirname);
+}
+
+std::string S3FileSystem::full_path(std::string_view path) {
+    return std::string(path);
+}
+
+std::string S3FileSystem::join_path(std::string_view part1, std::string_view part2) {
+    assert(!part1.empty());
+    assert(!part2.empty());
+    assert(part2.back() != '/');
+    if (part2.back() != '/') {
+        return fmt::format("{}/{}", part1, part2);
+    }
+    return fmt::format("{}{}", part1, part2);
 }
 
 std::unique_ptr<FileSystem> new_fs_s3(const FSOptions& options) {

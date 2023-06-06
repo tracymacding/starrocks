@@ -592,4 +592,18 @@ Status MemoryFileSystem::read_file(const std::string& path, std::string* content
     return random_access_file->read_at_fully(0, content->data(), content->size());
 }
 
+std::string MemoryFileSystem::full_path(std::string_view path) {
+    return std::string(path);
+}
+
+std::string MemoryFileSystem::join_path(std::string_view part1, std::string_view part2) {
+    assert(!part1.empty());
+    assert(!part2.empty());
+    assert(part2.back() != '/');
+    if (part2.back() != '/') {
+        return fmt::format("{}/{}", part1, part2);
+    }
+    return fmt::format("{}{}", part1, part2);
+}
+
 } // namespace starrocks

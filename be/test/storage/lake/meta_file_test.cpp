@@ -91,7 +91,9 @@ TEST_F(MetaFileTest, test_meta_rw) {
     EXPECT_TRUE(st.ok());
 
     // 3. read meta from meta file
-    MetaFileReader reader(s_tablet_manager->tablet_metadata_location(tablet_id, 10), false);
+    auto path = s_tablet_manager->tablet_metadata_location(tablet_id, 10);
+    ASSIGN_OR_RETURN(auto fs, FileSystem::CreateSharedFromString(path));
+    MetaFileReader reader(fs, path, false);
     EXPECT_TRUE(reader.load().ok());
     auto meta_st = reader.get_meta();
     EXPECT_TRUE(meta_st.ok());
@@ -128,14 +130,16 @@ TEST_F(MetaFileTest, test_delvec_rw) {
     EXPECT_TRUE(st.ok());
 
     // 3. read delvec
-    MetaFileReader reader(s_tablet_manager->tablet_metadata_location(tablet_id, version), false);
+    auto path = s_tablet_manager->tablet_metadata_location(tablet_id, version);
+    ASSIGN_OR_RETURN(auto fs, FileSystem::CreateSharedFromString(path));
+    MetaFileReader reader(fs, path, false);
     EXPECT_TRUE(reader.load().ok());
     DelVector after_delvec;
     EXPECT_TRUE(reader.get_del_vec(s_tablet_manager.get(), segment_id, &after_delvec).ok());
     EXPECT_EQ(before_delvec, after_delvec.save());
 
     // 4. read meta
-    MetaFileReader reader2(s_tablet_manager->tablet_metadata_location(tablet_id, version), false);
+    MetaFileReader reader2(fs, path, false);
     EXPECT_TRUE(reader2.load().ok());
     auto meta_st = reader2.get_meta();
     EXPECT_TRUE(meta_st.ok());
@@ -158,7 +162,9 @@ TEST_F(MetaFileTest, test_delvec_rw) {
     EXPECT_TRUE(st.ok());
 
     // 6. read again
-    MetaFileReader reader3(s_tablet_manager->tablet_metadata_location(tablet_id, version2), false);
+    auto path = s_tablet_manager->tablet_metadata_location(tablet_id, version2);
+    ASSIGN_OR_RETURN(auto fs, FileSystem::CreateSharedFromString(path));
+    MetaFileReader reader3(fs, path false);
     EXPECT_TRUE(reader3.load().ok());
     meta_st = reader3.get_meta();
     EXPECT_TRUE(meta_st.ok());
@@ -169,7 +175,7 @@ TEST_F(MetaFileTest, test_delvec_rw) {
     EXPECT_EQ(delvecpb.version(), version2);
 
     // 7. test reclaim delvec version to file name record
-    MetaFileReader reader4(s_tablet_manager->tablet_metadata_location(tablet_id, version2), false);
+    MetaFileReader reader4(fs, path, false);
     EXPECT_TRUE(reader4.load().ok());
     meta_st = reader4.get_meta();
     EXPECT_TRUE(meta_st.ok());
@@ -197,7 +203,9 @@ TEST_F(MetaFileTest, test_delvec_rw) {
     EXPECT_TRUE(st.ok());
 
     // validate delvec file record with version 12 been removed
-    MetaFileReader reader5(s_tablet_manager->tablet_metadata_location(tablet_id, new_version), false);
+    auto path = s_tablet_manager->tablet_metadata_location(tablet_id, new_version);
+    ASSIGN_OR_RETURN(auto fs, FileSystem::CreateSharedFromString(path));
+    MetaFileReader reader5(fs, path, false);
     EXPECT_TRUE(reader5.load().ok());
     auto version_to_delvec_map = (*meta_st)->delvec_meta().version_to_delvec();
     EXPECT_EQ(version_to_delvec_map.size(), 1);

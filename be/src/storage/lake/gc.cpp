@@ -108,10 +108,13 @@ static Status list_tablet_metadata(const std::string& metadir, std::set<std::str
 static Status delete_rowset_files(FileSystem* fs, std::string_view data_dir, const RowsetMetadataPB& rowset) {
     for (const auto& segment : rowset.segments()) {
         auto seg_path = join_path(data_dir, segment);
+        std::string real_path = "";
+        auto st = fs->canonicalize(seg_path, &real_path);
+        assert(st.ok());
         if (auto st = ignore_not_found(fs->delete_file(seg_path)); st.ok()) {
-            LOG_IF(INFO, config::lake_print_delete_log) << "Deleted " << seg_path;
+            LOG_IF(INFO, config::lake_print_delete_log) << "Deleted " << real_path;
         } else {
-            LOG(WARNING) << "Fail to delete " << seg_path << ": " << st;
+            LOG(WARNING) << "Fail to delete " << real_path << ": " << st;
             return st;
         }
     }
@@ -226,7 +229,10 @@ static Status delete_tablet_metadata(TabletManager* tablet_mgr, std::string_view
             }
             auto path = join_path(metadata_root_location, tablet_metadata_filename(tablet_id, version));
             if (auto st = ignore_not_found(fs->delete_file(path)); st.ok()) {
-                LOG_IF(INFO, config::lake_print_delete_log) << "Deleted " << path;
+                std::string real_path = "";
+                st = fs->canonicalize(path, &real_path);
+                assert(st.ok());
+                LOG_IF(INFO, config::lake_print_delete_log) << "Deleted " << real_path;
             } else {
                 LOG(WARNING) << "Fail to delete " << path << ": " << st;
             }
@@ -249,8 +255,11 @@ static Status delete_txn_log(std::string_view root_location, const std::set<int6
                 auto location = join_path(txn_log_root_location, name);
                 auto st = ignore_not_found(fs->delete_file(location));
                 if (st.ok()) {
+                    std::string real_path = "";
+                    auto st = fs->canonicalize(location, &real_path);
+                    assert(st.ok());
                     LOG_IF(INFO, config::lake_print_delete_log)
-                            << "Deleted " << location << ". min_active_txn_id=" << min_active_txn_id;
+                            << "Deleted " << real_path << ". min_active_txn_id=" << min_active_txn_id;
                 } else {
                     LOG(WARNING) << "Fail to delete " << name << ": " << st;
                 }
@@ -507,7 +516,10 @@ Status datafile_gc(std::string_view root_location, TabletManager* tablet_mgr, in
         auto location = join_path(segment_root_location, file);
         auto st = ignore_not_found(fs->delete_file(location));
         if (st.ok()) {
-            LOG_IF(INFO, config::lake_print_delete_log) << "Deleted orphan data file: " << location;
+            std::string real_path = "";
+            auto st = fs->canonicalize(location, &real_path);
+            assert(st.ok());
+            LOG_IF(INFO, config::lake_print_delete_log) << "Deleted orphan data file: " << real_path;
         } else {
             LOG(WARNING) << "Fail to delete " << location << ": " << st;
         }

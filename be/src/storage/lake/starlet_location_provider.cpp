@@ -21,13 +21,14 @@
 
 #include "common/logging.h"
 #include "fs/fs_starlet.h"
+#include "fs/fs_starlet_mgr.h"
 #include "gutil/strings/util.h"
 #include "service/staros_worker.h"
 
 namespace starrocks::lake {
 
 std::string StarletLocationProvider::root_location(int64_t tablet_id) const {
-    return build_starlet_uri(tablet_id, "");
+    return StarletFsMgr::build_starlet_uri(tablet_id, "");
 }
 
 Status StarletLocationProvider::list_root_locations(std::set<std::string>* roots) const {

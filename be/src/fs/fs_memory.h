@@ -85,6 +85,10 @@ public:
     Status append_file(const std::string& path, const Slice& content);
     Status read_file(const std::string& path, std::string* content);
 
+    std::string full_path(std::string_view path) override;
+
+    std::string join_path(std::string_view part1, std::string_view part2) override;
+
 private:
     EnvMemoryImpl* _impl;
 };
