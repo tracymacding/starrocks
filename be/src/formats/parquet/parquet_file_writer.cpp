@@ -504,7 +504,9 @@ Status ParquetFileWriterFactory::init() {
 }
 
 StatusOr<WriterAndStream> ParquetFileWriterFactory::create(const std::string& path) const {
-    ASSIGN_OR_RETURN(auto file, _fs->new_writable_file(WritableFileOptions{.direct_write = true}, path));
+    ASSIGN_OR_RETURN(auto file, _fs->new_writable_file(
+                                        WritableFileOptions{.direct_write = true, .content_type = "application/parquet"},
+                                        path));
     auto rollback_action = [fs = _fs, path = path]() {
         WARN_IF_ERROR(ignore_not_found(fs->delete_file(path)), "fail to delete file");
     };

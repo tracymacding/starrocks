@@ -347,6 +347,11 @@ struct WritableFileOptions {
     // See OpenMode for details.
     FileSystem::OpenMode mode = FileSystem::MUST_CREATE;
     FileEncryptionInfo encryption_info;
+
+    // Content type for cloud storage (S3, Azure, etc.)
+    // Examples: "text/csv", "application/parquet", "application/octet-stream"
+    // If empty, defaults to "application/octet-stream"
+    std::string content_type;
 };
 
 // A `SequentialFile` is an `io::InputStream` with a name.

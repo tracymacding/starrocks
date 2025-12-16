@@ -521,13 +521,16 @@ StatusOr<std::unique_ptr<WritableFile>> S3FileSystem::new_writable_file(const Wr
         return Status::NotSupported(fmt::format("S3FileSystem does not support open mode {}", opts.mode));
     }
     auto client = new_s3client(uri, _options);
+    // Use provided content_type or default to application/octet-stream
+    std::string content_type = opts.content_type.empty() ? "application/octet-stream" : opts.content_type;
     std::unique_ptr<io::OutputStream> output_stream;
     if (opts.direct_write) {
-        output_stream = std::make_unique<io::DirectS3OutputStream>(std::move(client), uri.bucket(), uri.key());
+        output_stream =
+                std::make_unique<io::DirectS3OutputStream>(std::move(client), uri.bucket(), uri.key(), content_type);
     } else {
         output_stream = std::make_unique<io::S3OutputStream>(std::move(client), uri.bucket(), uri.key(),
                                                              config::experimental_s3_max_single_part_size,
-                                                             config::experimental_s3_min_upload_part_size);
+                                                             config::experimental_s3_min_upload_part_size, content_type);
     }
 
     return wrap_encrypted(std::make_unique<OutputStreamAdapter>(std::move(output_stream), fname), opts.encryption_info);

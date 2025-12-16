@@ -23,7 +23,8 @@ namespace starrocks::io {
 class S3OutputStream : public OutputStream {
 public:
     explicit S3OutputStream(std::shared_ptr<Aws::S3::S3Client> client, std::string bucket, std::string object,
-                            int64_t max_single_part_size, int64_t min_upload_part_size);
+                            int64_t max_single_part_size, int64_t min_upload_part_size,
+                            std::string content_type = "application/octet-stream");
 
     ~S3OutputStream() override = default;
 
@@ -60,6 +61,7 @@ private:
     const Aws::String _object;
     const int64_t _max_single_part_size;
     const int64_t _min_upload_part_size;
+    const Aws::String _content_type;
     Aws::String _buffer;
     Aws::String _upload_id;
     std::vector<Aws::String> _etags;
