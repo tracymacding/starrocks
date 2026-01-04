@@ -169,6 +169,7 @@ public class ExportJob implements Writable, GsonPostProcessable {
     @SerializedName("rd")
     private String rowDelimiter;
     private boolean includeQueryId;
+    @SerializedName("wh")
     private boolean withHeader;
     @SerializedName("pt")
     private Map<String, String> properties = Maps.newHashMap();
